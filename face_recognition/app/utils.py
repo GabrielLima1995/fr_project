@@ -16,7 +16,7 @@
 
 import numpy as np
 import sys
-BASE_PATH = '/home/gabriel/open_model_zoo/demos'
+BASE_PATH = '/home/eduardolacava/open_model_zoo/demos'
 sys.path.insert(0,BASE_PATH + "/common/python/openvino/model_zoo")
 
 from model_api.models.utils import resize_image

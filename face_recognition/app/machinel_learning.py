@@ -5,7 +5,7 @@ import pickle
 from django.conf import settings
 import os
 import sys
-sys.path.insert(0,'/home/gabriel/fr_project/face_recognition/app')
+sys.path.insert(0,'/home/eduardolacava/Área de Trabalho/fr_project/face_recognition/app')
 from face_identifier import FaceIdentifier
 from model_api.models import OutputTransform
 

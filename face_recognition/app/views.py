@@ -11,11 +11,11 @@ from io import BytesIO
 from PIL import Image
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.views.decorators import gzip
-BASE_PATH = '/home/gabriel/open_model_zoo/demos'
+BASE_PATH = '/home/eduardolacava/open_model_zoo/demos'
 import sys
 sys.path.insert(0,BASE_PATH + "/common/python")
 sys.path.insert(0,BASE_PATH + "/common/python/openvino/model_zoo")
-sys.path.insert(0,'/home/gabriel/fr_project/face_recognition/app')
+sys.path.insert(0,'/home/eduardolacava/fr_project/face_recognition/app')
 import logging as log
 import sys
 from pathlib import Path
@@ -31,7 +31,6 @@ from faces_database import FacesDatabase
 from face_identifier import FaceIdentifier
 from model_api.models import OutputTransform
 from model_api.performance_metrics import PerformanceMetrics
-from inference import car_analytics
 
 # Create your views here.
 
@@ -73,7 +72,7 @@ def generate_frames(camera):
         t_id = 0.3        
         
         #Optional. Path to the face images directory . Default ''
-        fg = '/home/gabriel/faces/face'
+        fg = '/home/eduardolacava/faces/face'
 
         # Optional. Algorithm for face matching. Default: HUNGARIAN
         match_algo = 'HUNGARIAN' 
@@ -140,8 +139,6 @@ def generate_frames(camera):
             detections,frame,detects  = pipeline_openvino(frame,
                                                           frame_processor)
 
-           # detections_car,frame_car,detects_car  = car_analytics(frame,detect_vehicles = False, recognize_color = False)
-            #print(detects_car)
 
 
             _, buffer = cv2.imencode('.jpg', frame)
@@ -181,9 +178,14 @@ def generate_frames(camera):
 @gzip.gzip_page
 def stream(request):
 
-    # Inicializa a câmera
-    camera = cv2.VideoCapture('rtsp://admin:g9f6bmoes@10.15.20.22')  # Use o índice correto se você tiver várias câmeras
-    
+    while True:
+        try:
+            # Inicializa a câmera
+            camera = cv2.VideoCapture(0)  # Use o índice correto se você tiver várias câmeras
+            break
+        except ValueError:
+            print(ValueError)
+
     return StreamingHttpResponse(generate_frames(camera),
                                  content_type='multipart/x-mixed-replace; boundary=frame')
 
@@ -211,4 +213,15 @@ def search_images(request):
 
 # Página inicial
 def cam(request):
-    return render(request, 'camera_stream.html')
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            search_query = form.cleaned_data['search_query']
+            images = FaceDB.objects.filter(name__icontains=search_query)
+            print(images)
+            return render(request, 'camera_stream.html',
+                           {'images': images, 'form': form})
+    else:
+        print("GERADO")
+        form = SearchForm()
+    return render(request, 'camera_stream.html', {'form': form})
