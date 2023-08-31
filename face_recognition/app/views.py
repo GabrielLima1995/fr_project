@@ -177,15 +177,8 @@ def generate_frames(camera):
 # Página de streaming
 @gzip.gzip_page
 def stream(request):
-
-    while True:
-        try:
-            # Inicializa a câmera
-            camera = cv2.VideoCapture(0)  # Use o índice correto se você tiver várias câmeras
-            break
-        except ValueError:
-            print(ValueError)
-
+    # Inicializa a câmera
+    camera = cv2.VideoCapture(0)  # Use o índice correto se você tiver várias câmeras
     return StreamingHttpResponse(generate_frames(camera),
                                  content_type='multipart/x-mixed-replace; boundary=frame')
 
