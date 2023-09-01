@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
@@ -161,6 +162,10 @@
           p > * {
             width: 100%;
           }
+
+          input:-internal-autofill-selected {
+            background-color: -internal-light-dark(transparent) !important;
+          }
     </style>
 </head>
 <body>
@@ -184,7 +189,7 @@
                     <form id="form" method="post">
                         {% csrf_token %}
                         {{ form.as_p }}
-                    <button type="submit" class="flex-center">    <img src="{%static 'search.png'%}" class="search-img" alt="" width="35" height="35"></button>
+                    <button id="botaoSubmit" type="submit" class="flex-center">    <img src="{%static 'search.png'%}" class="search-img" alt="" width="35" height="35"></button>
                     </form>
   
             </div>
@@ -196,28 +201,53 @@
         <div class="col-5 camera-container">
             <img class="camera" src="{% url 'stream' %}">
         </div>
-        
-        {% if images %}
-
-            <div class="col-7 images-container">
-                
-                {% for image in images %}
-                    <div class="flex col-8 glass-card flex-center">
-                        <img class="img-result" src="{{ image.image.url }}" alt="{{ image.name }}">
-                    </div>
-                {% endfor %}
-                
-            </div>
-        
-        {% endif %}
+         
+        <div id="images-container" class="col-7 images-container">
+            <!--<div class="flex col-8 glass-card flex-center">
+                <img class="img-result" src="" alt="{{ image.name }}">
+            </div>-->
+        </div>
 
     </div>
 
     <script>
-        document.getElementById("form").addEventListener("submit", function(event) {
+        const formulario = document.getElementById('form')
+        const botaoFormulario = document.getElementById('botaoSubmit')
+        const inputFormulario = document.getElementById('id_search_query')
+
+        botaoFormulario.addEventListener('click', enviaDadosFormulario)
+        
+        formulario.addEventListener("submit", function(event) {
             event.preventDefault();
-            console.log("Formulário enviado sem recarregar a página.");
         });
+
+        function enviaDadosFormulario() {
+            if (formulario.checkValidity()) {
+                axios.post('http://127.0.0.1:8000/search/', {name: inputFormulario.value})
+                .then(response => {
+                    const containerDeImagens = document.getElementById('images-container')
+                    
+                    while (containerDeImagens.firstChild) {
+                        containerDeImagens.removeChild(containerDeImagens.firstChild);
+                    }
+                    imgList = response.data.images
+                    console.log(imgList.length)
+                    imgList.forEach(img => {
+                        const novaDivImagem = document.createElement('div')
+                        const imagem = document.createElement('img')
+                        novaDivImagem.setAttribute('class', 'flex col-8 glass-card flex-center')
+                        imagem.setAttribute('class', 'img-result')
+                        imagem.setAttribute('src', img.url)
+                        imagem.setAttribute('alt', img.name)
+                        novaDivImagem.appendChild(imagem)
+                        containerDeImagens.appendChild(novaDivImagem)
+                    })
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            }   
+        }
     </script>
 </body>
 </html>

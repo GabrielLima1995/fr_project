@@ -31,6 +31,9 @@ from faces_database import FacesDatabase
 from face_identifier import FaceIdentifier
 from model_api.models import OutputTransform
 from model_api.performance_metrics import PerformanceMetrics
+from django.http import JsonResponse
+
+import json
 
 # Create your views here.
 
@@ -206,15 +209,21 @@ def search_images(request):
 
 # Página inicial
 def cam(request):
-    if request.method == 'POST':
-        form = SearchForm(request.POST)
-        if form.is_valid():
-            search_query = form.cleaned_data['search_query']
-            images = FaceDB.objects.filter(name__icontains=search_query)
-            print(images)
-            return render(request, 'camera_stream.html',
-                           {'images': images, 'form': form})
-    else:
-        print("GERADO")
-        form = SearchForm()
+    form = SearchForm()
     return render(request, 'camera_stream.html', {'form': form})
+
+# Página inicial
+def obterImagens(request):
+    if request.method == 'POST':        
+        corpoRequisicao = json.loads(request.body.decode('utf-8'))
+        search_query = corpoRequisicao.get('name')
+        print(search_query)
+        images = FaceDB.objects.filter(name__icontains=search_query)
+        print(len(images[:3]))
+        lista_imagens_cortada = images[::-1][:100]
+        response_data = {
+            'images': [{'name': image.image.name, 'url': image.image.url} for image in lista_imagens_cortada]
+        }
+        
+        # Retornar a resposta JSON
+        return JsonResponse(response_data)
