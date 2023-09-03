@@ -38,14 +38,12 @@
             backdrop-filter: blur( 2px );
             border-radius: 50px;
             border: 1px solid rgba( 255, 255, 255, 0.18 );
-            padding: 0px 10px 0px 10px;
         }
 
         .bar-container {
             margin: 20px 0px 20px 0px;
             width: 100%;
             display: flex;
-            padding: 20px;
             justify-content: flex-start;
         }
 
@@ -166,6 +164,21 @@
           input:-internal-autofill-selected {
             background-color: -internal-light-dark(transparent) !important;
           }
+
+        select {
+            background: transparent;
+            border: none;
+            color: rebeccapurple;
+            outline: none;
+        } 
+
+        .bar-container > div {
+            padding: 10px;
+        }
+
+        .bar-container > div > div {
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -173,26 +186,44 @@
     <nav class="navbar navbar-dark" style="background-color: transparent;">
         
         <div class="bar-container col-12">
-            <div class="logo-container logo-text col-5">
-                <a href="/" class="flex-center navbar-brand">
-                    <img src="{%static 'intelicity.png'%}" class="logo-img" alt="" width="100" height="100">
-    
-                    <span style="font-size: 38px;">Projeto de Segurança Pública</span>
-                </a>
+            <div class="col-5">
+                <div class="logo-container logo-text col-12">
+                    <a href="/" class="flex-center navbar-brand">
+                        <img src="{%static 'intelicity.png'%}" class="logo-img" alt="" width="100" height="100">
+        
+                        <span style="font-size: 38px;">Projeto de Segurança Pública</span>
+                    </a>
+                </div>
             </div>
-
-            <div class=" logo-container logo-text col-7 custom-scroll" style="margin-left: 10px;">
+            <div class="col-4">
+                <div class=" logo-container logo-text col-12 custom-scroll">
+        
+                        <img src="{%static 'user-icon.png'%}" class="search-img" alt="" width="80" height="80">
+        
+                        <!--<input placeholder="Insira o nome"/>-->
+                        <form id="form" method="post">
+                            {% csrf_token %}
+                            {{ form.as_p }}
+                        <button id="botaoSubmit" type="submit" class="flex-center">    <img src="{%static 'search.png'%}" class="search-img" alt="" width="35" height="35"></button>
+                        </form>
+    
+                </div>
+            </div>
+            <div class="col-3">
+                <div class=" logo-container logo-text col-12 custom-scroll">
       
-                    <img src="{%static 'user-icon.png'%}" class="search-img" alt="" width="80" height="80">
+                    <img src="{%static 'capture-icon.png'%}" class="search-img" alt="" width="80" height="80">
     
-                    <!--<input placeholder="Insira o nome"/>-->
-                    <form id="form" method="post">
-                        {% csrf_token %}
-                        {{ form.as_p }}
-                    <button id="botaoSubmit" type="submit" class="flex-center">    <img src="{%static 'search.png'%}" class="search-img" alt="" width="35" height="35"></button>
-                    </form>
-  
-            </div>
+                    <select id="select" name="selected_item_id">
+                        <option value="">Selecione um item</option>
+                        <option value="Facial">Facial</option>
+                        <option value="Placa">Placa</option>
+                        <option value="Ambos">Ambos</option>
+                    </select>
+    
+                </div>
+            </div>    
+            
         </div>
             
     </nav>
@@ -214,6 +245,7 @@
         const formulario = document.getElementById('form')
         const botaoFormulario = document.getElementById('botaoSubmit')
         const inputFormulario = document.getElementById('id_search_query')
+        const select = document.getElementById('select')
 
         botaoFormulario.addEventListener('click', enviaDadosFormulario)
         
@@ -221,9 +253,11 @@
             event.preventDefault();
         });
 
+        select.onchange = selectChange
+
         function enviaDadosFormulario() {
             if (formulario.checkValidity()) {
-                axios.post('http://127.0.0.1:8000/search/', {name: inputFormulario.value})
+                axios.post('http://localhost:8000/search/', {name: inputFormulario.value})
                 .then(response => {
                     const containerDeImagens = document.getElementById('images-container')
                     
@@ -247,6 +281,19 @@
                     console.error(error);
                 });
             }   
+        }
+
+        function selectChange() {
+            selectedValue = select.options[select.selectedIndex].value
+            if (selectedValue) {
+                axios.post('http://localhost:8000/selection/', {id: selectedValue})
+                .then(response => {
+                    console.log('ok')
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            }
         }
     </script>
 </body>

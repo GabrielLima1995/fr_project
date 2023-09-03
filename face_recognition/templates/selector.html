@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Selecionar Item</title>
+</head>
+<body>
+    <h1>Lista de Itens</h1>
+    <form method="post">
+        {% csrf_token %}
+        <select name="selected_item_id">
+            <option value="">Selecione um item</option>
+            {% for item in items %}
+                <option value="{{ item.id }}">{{ item.nome }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Selecionar">
+    </form>
+
+    {% if selected_item %}
+        <h2>Item Selecionado: {{ selected_item.nome }}</h2>
+    {% endif %}
+</body>
+</html>

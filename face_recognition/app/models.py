@@ -11,3 +11,8 @@ class FaceDB(models.Model):
     def __str__(self):
         return str(self.record_date)
 
+class nets(models.Model):
+    nome = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.nome

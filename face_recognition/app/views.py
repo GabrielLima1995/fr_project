@@ -3,7 +3,7 @@ from django.http import HttpResponse,StreamingHttpResponse
 from app.forms import SearchForm
 from app.machinel_learning import pipeline_openvino
 from django.conf import settings
-from app.models import FaceDB
+from app.models import FaceDB,nets
 import os
 import cv2
 import numpy as np
@@ -23,27 +23,33 @@ from openvino.runtime import Core, get_version
 
 from landmarks_detector import LandmarksDetector
 from utils import crop
-#import monitorscomm 
-from helpers import resolution
-from images_capture import open_images_capture
 from face_detector import FaceDetector
 from faces_database import FacesDatabase
 from face_identifier import FaceIdentifier
-from model_api.models import OutputTransform
-from model_api.performance_metrics import PerformanceMetrics
 from django.http import JsonResponse
-
 import json
-
 # Create your views here.
 
-# Função para capturar frames da câmera
+selected_item = 'Facial'
+
+def selec(request):
+
+    global selected_item    
+    items = nets.objects.all()
+    selected_item = None
+
+    if request.method == 'POST':
+        corpoRequisicao = json.loads(request.body.decode('utf-8'))
+        selected_item = corpoRequisicao.get('id')
+
+    return render(request, 'selector.html', {'items': items, 'selected_item': selected_item})
+
 def generate_frames(camera):
 
     class FrameProcessor:
 
         # Path to an .xml file with Face Detection model
-        m_fd = f'{BASE_PATH}/face_recognition_demo/python/intel/face-detection-retail-0004/FP32/face-detection-retail-0004.xml' 
+        m_fd = '/home/eduardolacava/open_model_zoo/demos/face_recognition_demo/python/intel/face-detection-retail-0004/FP32/face-detection-retail-0004.xml' 
         
         #  Target device for Face Detection model. default CPU
         d_fd = 'CPU'
@@ -66,10 +72,10 @@ def generate_frames(camera):
         exp_r_fd = 1.15          
 
         # Path to an .xml file with Facial Landmarks Detection model
-        m_lm =   f'{BASE_PATH}/face_recognition_demo/python/intel/landmarks-regression-retail-0009/FP32/landmarks-regression-retail-0009.xml'          
+        m_lm =   '/home/eduardolacava/open_model_zoo/demos/face_recognition_demo/python/intel/landmarks-regression-retail-0009/FP32/landmarks-regression-retail-0009.xml'          
 
         # Required. Path to an .xml file with Face Reidentification model
-        m_reid =   f'{BASE_PATH}/face_recognition_demo/python/intel/face-reidentification-retail-0095/FP32/face-reidentification-retail-0095.xml'
+        m_reid =   '/home/eduardolacava/open_model_zoo/demos/face_recognition_demo/python/intel/face-reidentification-retail-0095/FP32/face-reidentification-retail-0095.xml'
 
         # Cosine distance threshold between two vectors for face identification default = 0.3  
         t_id = 0.3        
@@ -131,6 +137,7 @@ def generate_frames(camera):
    
 
     frame_processor = FrameProcessor()
+
     while True:
         # Captura um frame da câmera
         success, frame = camera.read()
@@ -139,40 +146,40 @@ def generate_frames(camera):
             break
         else:
             # Converte o frame em um formato que possa ser exibido em HTML
-            detections,frame,detects  = pipeline_openvino(frame,
+            # FRONTEND ENVIARÁ UMA DAS 3 OPÇÕES: Facial, Placa, Ambos
+            print(str(selected_item) == 'Facial')
+            if str(selected_item) == 'Facial':
+                detections,frame,detects  = pipeline_openvino(frame,
                                                           frame_processor)
 
+                if detections:
+                    
+                    for roi, landmarks, identity in zip(*detects):
+                        name = frame_processor.face_identifier.\
+                            get_identity_label(identity.id)
+                        
+                        if name == 'Unknown':
+                            pass
+                        else:                   
+                            face_recognition_instance = FaceDB()
+                            image = Image.fromarray(cv2.cvtColor(frame,
+                                                                cv2.COLOR_BGR2RGB))
+                            image_buffer = BytesIO()
+                            image.save(image_buffer, format='JPEG')
+                            image_data = image_buffer.getvalue()
+                            image_file = InMemoryUploadedFile(
+                                image_buffer, None, 'img.jpg', 
+                                'image/jpeg', len(image_data), None
+                            )
 
+                            face_recognition_instance.image = image_file
+                            face_recognition_instance.name =  name
+                            face_recognition_instance.save()
 
             _, buffer = cv2.imencode('.jpg', frame)
-
+            
             frame_data = buffer.tobytes()
-            
-            
-            if detections:
-                for roi, landmarks, identity in zip(*detects):
-                    name = frame_processor.face_identifier.\
-                        get_identity_label(identity.id)
-                    
-                    if name == 'Unknown':
-                        pass
-                    else:                   
-                        face_recognition_instance = FaceDB()
-                        image = Image.fromarray(cv2.cvtColor(frame,
-                                                            cv2.COLOR_BGR2RGB))
-                        image_buffer = BytesIO()
-                        image.save(image_buffer, format='JPEG')
-                        image_data = image_buffer.getvalue()
-                        image_file = InMemoryUploadedFile(
-                            image_buffer, None, 'img.jpg', 
-                            'image/jpeg', len(image_data), None
-                        )
 
-                        face_recognition_instance.image = image_file
-                        face_recognition_instance.name =  name
-                        face_recognition_instance.save()
-            
-            
 
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
@@ -180,8 +187,10 @@ def generate_frames(camera):
 # Página de streaming
 @gzip.gzip_page
 def stream(request):
+
     # Inicializa a câmera
     camera = cv2.VideoCapture(0)  # Use o índice correto se você tiver várias câmeras
+    
     return StreamingHttpResponse(generate_frames(camera),
                                  content_type='multipart/x-mixed-replace; boundary=frame')
 
@@ -212,11 +221,12 @@ def cam(request):
     form = SearchForm()
     return render(request, 'camera_stream.html', {'form': form})
 
-# Página inicial
+
 def obterImagens(request):
     if request.method == 'POST':        
         corpoRequisicao = json.loads(request.body.decode('utf-8'))
         search_query = corpoRequisicao.get('name')
+        corpoRequisicao.get('name')
         print(search_query)
         images = FaceDB.objects.filter(name__icontains=search_query)
         print(len(images[:3]))

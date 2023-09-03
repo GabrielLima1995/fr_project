@@ -24,7 +24,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.cam, name='cam'),
     path('stream/', views.stream, name='stream'),
-    path('search/', views.obterImagens, name='search')
+    path('search/', views.obterImagens, name='search'),
+    path('selection/', views.selec, name='selection')
 ] + static(settings.MEDIA_URL,document_root = settings.MEDIA_ROOT)
 
 
